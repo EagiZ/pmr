@@ -7,13 +7,14 @@ package models;
 public class Player {
 	private float x;
 	private float y;
-	private float accel;
+	private float xAccel;
+	private float yAccel;
 	
 	private String name;
 	
 	/**
-	 * @param x				The player's position on the x-axis
-	 * @param y				The player's position on the y-axis
+	 * @param x		The player's position on the x-axis
+	 * @param y		The player's position on the y-axis
 	 * @param playerName	The player name
 	 */
 	public Player(int x, int y, String playerName) {
