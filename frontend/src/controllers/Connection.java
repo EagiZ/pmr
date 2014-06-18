@@ -85,7 +85,7 @@ public class Connection {
 	 * @param data Data to send to server
 	 */
 	public void send(String data) {
-		// tbi.
+		// TODO.
 		try {
 			send.writeBytes(data);
 		} catch (IOException e) {
@@ -98,7 +98,7 @@ public class Connection {
 	 * @return Data received from server
 	 */
 	public String receive() {
-		// tbi.
+		// TODO.
 		String str = "";
 		try {
 			str = receive.readLine();
