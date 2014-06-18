@@ -23,6 +23,15 @@ public class Player {
 		this.name = playerName;
 	}
 	
+	public float getX() {
+		this.x;
+	}
+	
+	public float getY() {
+		this.y;
+	}
+	
+	
 	public void setX(int x) {
 		this.x = x;
 	}
@@ -30,6 +39,7 @@ public class Player {
 	public void setY(int y) {
 		this.y = y;
 	}
+	
 	
 	
 }
