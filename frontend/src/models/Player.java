@@ -24,11 +24,11 @@ public class Player {
 	}
 	
 	public float getX() {
-		this.x;
+		return x;
 	}
 	
 	public float getY() {
-		this.y;
+		return y;
 	}
 	
 	
