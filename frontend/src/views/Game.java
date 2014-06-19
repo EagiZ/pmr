@@ -11,6 +11,8 @@ public class Game extends BasicGame {
 	Input input;
 	Player player;
 	
+	Boolean playerPressed = false;
+	
 	//Connection testCon = new Connection("79.102.55.164");
 	Connection testCon = new Connection("127.0.0.1");
 	public Game() {
@@ -20,9 +22,6 @@ public class Game extends BasicGame {
 	@Override
 	public void init(GameContainer container) throws SlickException {
 		player = new Player(400, 400, 10, "Kalle Klåpare");
-		
-		
-		
 	}
 
 	@Override
@@ -39,14 +38,27 @@ public class Game extends BasicGame {
 	}
 	
 	@Override
+	public void mousePressed(int button, int x, int y) {
+		Circle playerHitBox = player.getHitbox();
+		
+		if (playerHitBox.contains(x, y)) {
+			playerPressed = true;
+		} else {
+			playerPressed = false;
+		}
+	}
+	
+	@Override
 	public void mouseReleased(int button, int x, int y) {
-		System.out.println("new posx: " + x + " new posy: " + y);
-		Vector2f playerPos = player.getPosition();
-		Vector2f dragVec = new Vector2f(playerPos.x - x, playerPos.y - y);
-		
-		player.setVelocity(dragVec.scale(0.01f));
-		
-		// TODO: here's where we should send data to the server.
+		if (playerPressed) {
+			System.out.println("new posx: " + x + " new posy: " + y);
+			Vector2f playerPos = player.getPosition();
+			Vector2f dragVec = new Vector2f(playerPos.x - x, playerPos.y - y);
+			
+			player.setVelocity(dragVec.scale(0.01f));
+			
+			// TODO: here's where we should send data to the server.
+		}
 	}
 
 
