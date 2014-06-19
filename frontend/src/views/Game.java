@@ -41,9 +41,10 @@ public class Game extends BasicGame {
 	@Override
 	public void mouseReleased(int button, int x, int y) {
 		System.out.println("new posx: " + x + " new posy: " + y);
-		Vector2f dragVec = new Vector2f(player.getPosition().x - x, player.getPosition().y - y);
+		Vector2f playerPos = player.getPosition();
+		Vector2f dragVec = new Vector2f(playerPos.x - x, playerPos.y - y);
 		
-		player.setVelocity(dragVec);
+		player.setVelocity(dragVec.scale(0.01f));
 		
 		// TODO: here's where we should send data to the server.
 	}
