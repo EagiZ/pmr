@@ -1,45 +1,57 @@
 package models;
 
+import org.newdawn.slick.geom.Circle;
+import org.newdawn.slick.geom.Vector2f;
+
 /**
  * The player class. Represents a player and contains information
- * about its position.
+ * about its position, hitbox, velocity et.c.
  */
 public class Player {
-	private float x;
-	private float y;
-	private float xAccel;
-	private float yAccel;
 	
-	private String name;
+	/* === Fields === */
+
+	private Circle hitbox;
+	private Vector2f velocity;
+	private String playerName;
+	
+	/* === Constructors === */
 	
 	/**
 	 * @param x		The player's position on the x-axis
 	 * @param y		The player's position on the y-axis
 	 * @param playerName	The player name
 	 */
-	public Player(int x, int y, String playerName) {
-		this.x = x;
-		this.y = y;
-		this.name = playerName;
+	public Player(int x, int y, int radius, String playerName) {
+		hitbox = new Circle(x, y, radius);
+		velocity = new Vector2f(0, 0);
+		this.setPlayerName(playerName);
 	}
 	
-	public float getX() {
-		return x;
+	/* === Accessors === */
+	
+	/** @return the hitbox cirlce of the player. */
+	public Circle getHitbox() {return hitbox;}
+	/** @return the position vector of the player. */
+	public Vector2f getPosition() {return hitbox.getLocation();}
+	/** @return the velocity vector of the player. */
+	public Vector2f getVelocity() {return velocity;}
+	/** @return the player name of the player. */
+	public String getPlayerName() {return playerName;}
+	
+	/* === Mutators === */
+	
+	/** @param velocity new velocity vector to set */
+	public void setVelocity(Vector2f velocity) {this.velocity = velocity;}
+	/** @param playerName new name of the player to set */
+	public void setPlayerName(String playerName) {this.playerName = playerName;}
+	
+	/* === Misc. Functions === */
+	
+	/**
+	 * Updates position of player with the current velocity data.
+	 */
+	public void update() {
+		hitbox.setLocation(hitbox.getLocation().add(velocity));
 	}
-	
-	public float getY() {
-		return y;
-	}
-	
-	
-	public void setX(int x) {
-		this.x = x;
-	}
-	
-	public void setY(int y) {
-		this.y = y;
-	}
-	
-	
-	
 }
