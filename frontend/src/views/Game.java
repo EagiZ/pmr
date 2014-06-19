@@ -1,42 +1,57 @@
 package views;
 
 import controllers.*;
+import models.*;
 
 import org.newdawn.slick.*;
 import org.newdawn.slick.geom.Circle;
+import org.newdawn.slick.geom.Vector2f;
 
 public class Game extends BasicGame {
 	Input input;
-	Circle circle;
-	Connection testCon = new Connection("127.0.0.1");
+	Player player;
 	
+	//Connection testCon = new Connection("79.102.55.164");
+	Connection testCon = new Connection("127.0.0.1");
 	public Game() {
         super("Putt my redneck");
     }	
 
 	@Override
 	public void init(GameContainer container) throws SlickException {
-		circle = new Circle(400.0f, 400.0f, 20.0f);
+		player = new Player(400, 400, 10, "Kalle Klåpare");
+		
+		
+		
 	}
 
 	@Override
 	public void update(GameContainer container, int delta) throws SlickException {
-		input = container.getInput();
+		player.update();
 		
-		float newX = input.getMouseX();
-		float newY = input.getMouseY();
-				
-		circle.setCenterX(newX);
-		circle.setCenterY(newY);
+		//testCon.send("move " + "newX: " + newX + " newY: " + newY + "\n");
+		//testCon.receive(); //TODO, do something with the result
+	}
+	
+	@Override
+	public void mouseDragged(int oldx, int oldy, int newx, int newy) {
+		// TODO: render some kind of animation to show the force of the shot.
+	}
+	
+	@Override
+	public void mouseReleased(int button, int x, int y) {
+		System.out.println("new posx: " + x + " new posy: " + y);
+		Vector2f dragVec = new Vector2f(player.getPosition().x - x, player.getPosition().y - y);
 		
-		testCon.send("move " + "newX: " + newX + " newY: " + newY + "\n");
-		System.out.println(testCon.receive());
+		player.setVelocity(dragVec);
+		
+		// TODO: here's where we should send data to the server.
 	}
 
 
 	@Override
 	public void render(GameContainer container, Graphics g) throws SlickException {
-		g.draw(circle);
+		g.draw(player.getHitbox());
 	}
 	
 	public static void main(String[] arguments) {
