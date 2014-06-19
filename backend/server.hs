@@ -3,6 +3,16 @@ import System.Environment (getArgs)
 import System.IO (hSetBuffering, hGetLine, hPutStrLn, BufferMode(..), Handle)
 import Control.Concurrent (forkIO)
 
+-- User contains of UserID (Int), UserName (String), x-axis position (Float), y-axis position (Float)
+data User = User { userID :: Int,
+                   userName :: String,
+                   score :: Int,
+                   xPos :: Float,
+                   yPos :: Float,
+                   xVel :: Float,
+                   yVel :: Float
+                 } deriving (Show)
+
 -- Notes:
 -- hPutStrLn is used to send data back to the client
 -- hGetLine reads data from client
@@ -37,3 +47,8 @@ commandProcessor clientHandle = do
 moveCommand :: Handle -> [String] -> IO ()
 moveCommand clientHandle cmd = do
   hPutStrLn clientHandle (unwords $ tail cmd) -- TODO: do something valuable
+
+connectCommand :: Handle -> [String] -> IO ()
+connectCommand clientHandle cmd = do
+  hPutStrLn clientHandle (unwords $ tail cmd) -- TODO: do something valuable
+  
