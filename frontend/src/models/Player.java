@@ -33,7 +33,11 @@ public class Player {
 	/** @return the hitbox cirlce of the player. */
 	public Circle getHitbox() {return hitbox;}
 	/** @return the position vector of the player. */
-	public Vector2f getPosition() {return hitbox.getLocation();}
+	public Vector2f getPosition() {
+		float[] pos = hitbox.getCenter();
+		return new Vector2f(pos[0],pos[1]);
+	}
+	
 	/** @return the velocity vector of the player. */
 	public Vector2f getVelocity() {return velocity;}
 	/** @return the player name of the player. */
