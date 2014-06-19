@@ -13,6 +13,7 @@ public class Player {
 
 	private Circle hitbox;
 	private Vector2f velocity;
+	private float acceleration;
 	private String playerName;
 	
 	/* === Constructors === */
@@ -25,23 +26,27 @@ public class Player {
 	public Player(int x, int y, int radius, String playerName) {
 		hitbox = new Circle(x, y, radius);
 		velocity = new Vector2f(0, 0);
+		acceleration = 0.9973f;
 		this.setPlayerName(playerName);
 	}
 	
 	/* === Accessors === */
 	
-	/** @return the hitbox cirlce of the player. */
-	public Circle getHitbox() {return hitbox;}
+	/** @return the hitbox circle of the player. */
+	public Circle getHitbox() {
+		return new Circle(hitbox.getCenterX(), 
+				hitbox.getCenterY(), 
+				hitbox.getRadius());
+	}
+	/** @return the velocity vector of the player. */
+	public Vector2f getVelocity() {return velocity.copy();}
+	/** @return the player name of the player. */
+	public String getPlayerName() {return playerName;}
 	/** @return the position vector of the player. */
 	public Vector2f getPosition() {
 		float[] pos = hitbox.getCenter();
 		return new Vector2f(pos[0],pos[1]);
 	}
-	
-	/** @return the velocity vector of the player. */
-	public Vector2f getVelocity() {return velocity;}
-	/** @return the player name of the player. */
-	public String getPlayerName() {return playerName;}
 	
 	/* === Mutators === */
 	
@@ -57,5 +62,6 @@ public class Player {
 	 */
 	public void update() {
 		hitbox.setLocation(hitbox.getLocation().add(velocity));
+		velocity.scale(acceleration);
 	}
 }
