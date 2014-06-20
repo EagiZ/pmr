@@ -28,7 +28,7 @@ public class Player {
 	 * @param y		The player's position on the y-axis
 	 * @param playerName	The player name
 	 */
-	public Player(int x, int y, int radius, String playerName) {
+	public Player(float x, float y, float radius, String playerName) {
 		hitbox = new Circle(x, y, radius);
 		velocity = new Vector2f(0, 0);
 		acceleration = 0.9973f;
@@ -85,7 +85,7 @@ public class Player {
 	 */
 	public static Player fromJSON(JsonObject object) {
 		int userID = object.get("userID").asInt();
-		String userName = object.get("userName").toString();
+		String userName = object.get("userName").asString();
 		int score = object.get("score").asInt();
 		float xPos = object.get("xPos").asFloat();
 		float yPos = object.get("yPos").asFloat();
@@ -93,7 +93,7 @@ public class Player {
 		float yVel = object.get("yVel").asFloat();
 		float radius = object.get("radius").asFloat();
 		
-		Player player = new Player((int) xPos, (int) yPos, (int) radius, userName);
+		Player player = new Player(xPos, yPos, radius, userName);
 		Vector2f velocityVector = new Vector2f(xVel, yVel);
 		
 		player.setVelocity(velocityVector);
