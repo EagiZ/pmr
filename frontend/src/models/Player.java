@@ -85,7 +85,7 @@ public class Player {
 	 */
 	public static Player fromJSON(JsonObject object) {
 		int userID = object.get("userID").asInt();
-		String userName = object.get("userName").toString();
+		String userName = object.get("userName").asString();
 		int score = object.get("score").asInt();
 		float xPos = object.get("xPos").asFloat();
 		float yPos = object.get("yPos").asFloat();
