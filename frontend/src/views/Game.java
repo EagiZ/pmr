@@ -8,20 +8,19 @@ import org.newdawn.slick.geom.Circle;
 import org.newdawn.slick.geom.Vector2f;
 
 public class Game extends BasicGame {
+	
 	Input input;
 	Player player;
-	
 	Boolean playerPressed = false;
-	
-	//Connection testCon = new Connection("79.102.55.164");
 	Connection testCon;
+	
 	public Game() {
-        super("Putt my redneck");
+        super("Putt My Redneck");
     }	
 
 	@Override
 	public void init(GameContainer container) throws SlickException {
-		player = new Player(400, 400, 10, "Kalle Kl�pare");
+		player = new Player(400, 400, 10, "Kalle Kleauparret");
 		testCon = new Connection("127.0.0.1");
 	}
 
@@ -30,17 +29,6 @@ public class Game extends BasicGame {
 		player.update();
 		
 		//testCon.receive(); //TODO, do something with the result
-		/*testCon.send("{" +
-				"\"userID\": 1," +
-				"\"userName\": \"a\"," +
-				"\"score\": 25," +
-				"\"xPos\" : 0.0," +
-				"\"yPos\" : 0.0," +
-				"\"xVel\" : 0.0," +
-				"\"yVel\" : 0.0," +
-				"\"radius\" : 0.0" +
-				"}");
-		 */
 	}
 	
 	@Override
@@ -70,11 +58,17 @@ public class Game extends BasicGame {
 			
 			// TODO: here's where we should send data to the server.
 			
-			String sampleJSON = 
-					"{\"userID\":1,\"userName\":\"a\",\"score\":0,\"xPos\":"+
-							player.getPosition().getX()+",\"yPos\":"+
-							player.getPosition().getX()+",\"xVel\":0.0,"+
-							"\"yVel\":0.0,\"radius\":0.0}";
+			String sampleJSON ="{" +
+					"\"userID\": 1," +
+					"\"userName\": \"a\"," +
+					"\"score\": 25," +
+					"\"xPos\" : "+player.getPosition().getX()+"," +
+					"\"yPos\" : "+player.getPosition().getY()+"," +
+					"\"xVel\" : 0.0," +
+					"\"yVel\" : 0.0," +
+					"\"radius\" : 0.0" +
+					"}";
+			
 			testCon.send(sampleJSON);
 			
 			String testStr = testCon.receive();
@@ -98,5 +92,4 @@ public class Game extends BasicGame {
             e.printStackTrace();
         }
     }
-
 }
