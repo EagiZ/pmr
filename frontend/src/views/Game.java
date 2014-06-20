@@ -7,6 +7,8 @@ import org.newdawn.slick.*;
 import org.newdawn.slick.geom.Circle;
 import org.newdawn.slick.geom.Vector2f;
 
+import com.eclipsesource.json.JsonObject;
+
 public class Game extends BasicGame {
 	
 	Input input;
@@ -58,21 +60,13 @@ public class Game extends BasicGame {
 			
 			// TODO: here's where we should send data to the server.
 			
-			String sampleJSON ="{" +
-					"\"userID\": 1," +
-					"\"userName\": \"a\"," +
-					"\"score\": 25," +
-					"\"xPos\" : "+player.getPosition().getX()+"," +
-					"\"yPos\" : "+player.getPosition().getY()+"," +
-					"\"xVel\" : 0.0," +
-					"\"yVel\" : 0.0," +
-					"\"radius\" : 0.0" +
-					"}";
+			String sampleJSON = Player.toJSON(player).toString();
 			
 			testCon.send(sampleJSON);
 			
 			String testStr = testCon.receive();
 			System.out.println(testStr);
+			player = Player.fromJSON(JsonObject.readFrom(testStr));
 		} 
 	}
 
