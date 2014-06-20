@@ -87,7 +87,7 @@ public class Connection {
 	public void send(String data) {
 		// TODO.
 		try {
-			send.writeBytes(data);
+			send.writeBytes(data + '\n');
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
