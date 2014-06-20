@@ -14,22 +14,33 @@ public class Game extends BasicGame {
 	Boolean playerPressed = false;
 	
 	//Connection testCon = new Connection("79.102.55.164");
-	Connection testCon = new Connection("127.0.0.1");
+	Connection testCon;
 	public Game() {
         super("Putt my redneck");
     }	
 
 	@Override
 	public void init(GameContainer container) throws SlickException {
-		player = new Player(400, 400, 10, "Kalle Klåpare");
+		player = new Player(400, 400, 10, "Kalle Klï¿½pare");
+		testCon = new Connection("127.0.0.1");
 	}
 
 	@Override
 	public void update(GameContainer container, int delta) throws SlickException {
 		player.update();
 		
-		//testCon.send("move " + "newX: " + newX + " newY: " + newY + "\n");
 		//testCon.receive(); //TODO, do something with the result
+		/*testCon.send("{" +
+				"\"userID\": 1," +
+				"\"userName\": \"a\"," +
+				"\"score\": 25," +
+				"\"xPos\" : 0.0," +
+				"\"yPos\" : 0.0," +
+				"\"xVel\" : 0.0," +
+				"\"yVel\" : 0.0," +
+				"\"radius\" : 0.0" +
+				"}");
+		 */
 	}
 	
 	@Override
@@ -58,7 +69,17 @@ public class Game extends BasicGame {
 			player.setVelocity(dragVec.scale(0.01f));
 			
 			// TODO: here's where we should send data to the server.
-		}
+			
+			String sampleJSON = 
+					"{\"userID\":1,\"userName\":\"a\",\"score\":0,\"xPos\":"+
+							player.getPosition().getX()+",\"yPos\":"+
+							player.getPosition().getX()+",\"xVel\":0.0,"+
+							"\"yVel\":0.0,\"radius\":0.0}";
+			testCon.send(sampleJSON);
+			
+			String testStr = testCon.receive();
+			System.out.println(testStr);
+		} 
 	}
 
 
