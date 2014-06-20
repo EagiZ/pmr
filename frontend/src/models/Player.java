@@ -35,6 +35,48 @@ public class Player {
 		this.setPlayerName(playerName);
 	}
 	
+	
+	
+	/* === Accessors === */
+	
+	public Vector2f getVelocity() { return velocity.copy(); }
+	public String getPlayerName() { return playerName; }
+	public int getUserID() { return userID; }
+	public int getScore() { return score; }
+	
+	/** @return the hitbox circle of the player. */
+	public Circle getHitbox() {
+		return new Circle(hitbox.getCenterX(), 
+				hitbox.getCenterY(), 
+				hitbox.getRadius());
+	}
+	
+	/** @return the position vector of the player. */
+	public Vector2f getPosition() {
+		float[] pos = hitbox.getCenter();
+		return new Vector2f(pos[0],pos[1]);
+	}
+	
+	
+	/* === Mutators === */
+	
+	public void setUserID(int userID) { this.userID = userID; }
+	public void setScore(int score) { this.score = score; }
+	public void setVelocity(Vector2f velocity) { this.velocity = velocity; }
+	public void setPlayerName(String playerName) { this.playerName = playerName; }
+	
+	/* === Misc. methods === */
+	
+	/**
+	 * Updates position of player with the current velocity data.
+	 */
+	public void update() {
+		hitbox.setLocation(hitbox.getLocation().add(velocity));
+		velocity.scale(acceleration);
+	}
+	
+	/* === Functions === */
+	
 	/**
 	 * Converts a JsonObject to a Player object.
 	 * 
@@ -89,55 +131,6 @@ public class Player {
 		
 		return jsonObject;
 	}
-	
-	/* === Accessors === */
-	
-	/** @return the hitbox circle of the player. */
-	public Circle getHitbox() {
-		return new Circle(hitbox.getCenterX(), 
-				hitbox.getCenterY(), 
-				hitbox.getRadius());
-	}
-	/** @return the velocity vector of the player. */
-	public Vector2f getVelocity() {return velocity.copy();}
-	/** @return the player name of the player. */
-	public String getPlayerName() {return playerName;}
-	/** @return the position vector of the player. */
-	public Vector2f getPosition() {
-		float[] pos = hitbox.getCenter();
-		return new Vector2f(pos[0],pos[1]);
-	}
-	
-	/* === Mutators === */
-	
-	/** @param velocity new velocity vector to set */
-	public void setVelocity(Vector2f velocity) {this.velocity = velocity;}
-	/** @param playerName new name of the player to set */
-	public void setPlayerName(String playerName) {this.playerName = playerName;}
-	
-	/* === Misc. Functions === */
-	
-	/**
-	 * Updates position of player with the current velocity data.
-	 */
-	public void update() {
-		hitbox.setLocation(hitbox.getLocation().add(velocity));
-		velocity.scale(acceleration);
-	}
 
-	public int getUserID() {
-		return userID;
-	}
-
-	public void setUserID(int userID) {
-		this.userID = userID;
-	}
-
-	public int getScore() {
-		return score;
-	}
-
-	public void setScore(int score) {
-		this.score = score;
-	}
+	
 }
