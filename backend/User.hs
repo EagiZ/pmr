@@ -1,11 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+module User where
+
 import Data.Aeson
 import Data.Text
 
 import Control.Applicative ((<$>), (<*>), empty)
 import Control.Monad
 import qualified Data.ByteString.Lazy as BS
+import qualified Data.ByteString.Char8 as C
 import GHC.Generics
 
 
@@ -43,3 +46,11 @@ instance ToJSON User where
            , "yVel"     .= yVel
            , "radius"   .= radius
            ]
+
+decodeJSON :: FromJSON a => BS.ByteString -> Either String a
+decodeJSON str =
+  eitherDecode str
+
+encodeJSON :: ToJSON a => a -> BS.ByteString
+encodeJSON user =
+  encode $ user
