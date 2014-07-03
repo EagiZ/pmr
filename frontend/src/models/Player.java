@@ -32,17 +32,20 @@ public class Player {
 		hitbox = new Circle(x, y, radius);
 		velocity = new Vector2f(0, 0);
 		acceleration = 0.9973f;
-		this.setPlayerName(playerName);
+		//acceleration = 0.9923f;
+		this.playerName = playerName;
 	}
 	
-	
+	public Player(String playerName) {
+		this(0, 0, 0, playerName);
+	}
 	
 	/* === Accessors === */
 	
-	public Vector2f getVelocity() { return velocity.copy(); }
-	public String getPlayerName() { return playerName; }
-	public int getUserID() { return userID; }
-	public int getScore() { return score; }
+	public Vector2f getVelocity() {return velocity.copy();}
+	public String getPlayerName() {return playerName;}
+	public int getUserID() {return userID;}
+	public int getScore() {return score;}
 	
 	/** @return the hitbox circle of the player. */
 	public Circle getHitbox() {
@@ -60,10 +63,10 @@ public class Player {
 	
 	/* === Mutators === */
 	
-	public void setUserID(int userID) { this.userID = userID; }
-	public void setScore(int score) { this.score = score; }
-	public void setVelocity(Vector2f velocity) { this.velocity = velocity; }
-	public void setPlayerName(String playerName) { this.playerName = playerName; }
+	public void setUserID(int userID) {this.userID = userID;}
+	public void setScore(int score) {this.score = score;}
+	public void setVelocity(Vector2f velocity) {this.velocity = velocity;}
+	public void setPlayerName(String playerName) {this.playerName = playerName;}
 	
 	/* === Misc. methods === */
 	
