@@ -65,11 +65,13 @@ supervisor broadcastChan messageBox userL = do
           testPrint createdUser
           let userAsJSON = C.unpack $ BS.toStrict $ encodeJSON createdUser
           writeChan chan userAsJSON
-    ("disconnect") ->
+          supervisor broadcastChan messageBox (createdUser:userL)
+    ("disconnect") -> do
       putStrLn "supervisor: disconnect tbi"
-    _ -> 
+      supervisor broadcastChan messageBox userL
+    _ -> do
       putStrLn "recieved message in messageBox"
-  supervisor broadcastChan messageBox userL
+      supervisor broadcastChan messageBox userL
 
 commandProcessor :: Handle -> Chan Msg  -> IO ()
 commandProcessor clientHandle messageBox  = do
