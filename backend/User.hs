@@ -19,6 +19,7 @@ data User = User { userID :: Int,
                    yPos :: Float,
                    xVel :: Float,
                    yVel :: Float,
+                   acc :: Float,
                    radius :: Float,
                    isAlive :: Bool
                  } deriving (Show)
@@ -33,19 +34,21 @@ instance FromJSON User where
     <*> v .: "yPos"
     <*> v .: "xVel"
     <*> v .: "yVel"
+    <*> v .: "acc"
     <*> v .: "radius"
     <*> v .: "isAlive"
   parseJSON _ = Control.Applicative.empty
 
 instance ToJSON User where
-  toJSON (User userID username score xPos yPos xVel yVel radius isAlive) =
+  toJSON (User userID username score xPos yPos xVel yVel acc radius isAlive) =
     object [ "userID"   .= userID
-           , "userName" .= username
+           , "username" .= username
            , "score"    .= score
            , "xPos"     .= xPos
            , "yPos"     .= yPos
            , "xVel"     .= xVel
            , "yVel"     .= yVel
+           , "acc"     .= acc
            , "radius"   .= radius
            , "isAlive"   .= isAlive
            ]
