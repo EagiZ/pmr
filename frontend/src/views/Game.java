@@ -28,7 +28,7 @@ public class Game extends BasicGame {
 		player = new Player("Kalle Kleauparret");
 		dragline = new Dragline();
 		connection = new Connection("127.0.0.1");
-		connection.connect(Player.toJSON(player).toString());
+		player = Player.fromJSON(JsonObject.readFrom(connection.connect(Player.toJSON(player).toString())));
 	}
 
 	@Override
