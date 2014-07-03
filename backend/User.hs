@@ -13,7 +13,7 @@ import GHC.Generics
 
 
 data User = User { userID :: Int,
-                   userName :: String,
+                   username :: String,
                    score :: Int,
                    xPos :: Float,
                    yPos :: Float,
@@ -27,7 +27,7 @@ data User = User { userID :: Int,
 instance FromJSON User where
   parseJSON (Object v) =
     User <$> v .: "userID"
-    <*> v .: "userName"
+    <*> v .: "username"
     <*> v .: "score"
     <*> v .: "xPos"
     <*> v .: "yPos"
@@ -38,9 +38,9 @@ instance FromJSON User where
   parseJSON _ = Control.Applicative.empty
 
 instance ToJSON User where
-  toJSON (User userID userName score xPos yPos xVel yVel radius isAlive) =
+  toJSON (User userID username score xPos yPos xVel yVel radius isAlive) =
     object [ "userID"   .= userID
-           , "userName" .= userName
+           , "userName" .= username
            , "score"    .= score
            , "xPos"     .= xPos
            , "yPos"     .= yPos
