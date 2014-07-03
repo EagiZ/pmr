@@ -25,7 +25,7 @@ public class Game extends BasicGame {
 	@Override
 	public void init(GameContainer container) throws SlickException {
 		//player = new Player("Kalle Kleauparret");
-		player = new Player(400, 400, 16, "Kalle Keauparret");
+		player = new Player("Kalle Kleauparret");
 		dragline = new Dragline();
 		connection = new Connection("127.0.0.1");
 		connection.connect(Player.toJSON(player).toString());
