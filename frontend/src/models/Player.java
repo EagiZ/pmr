@@ -20,6 +20,7 @@ public class Player {
 	private Vector2f velocity;
 	private float acceleration;
 	private int score = 0;
+	private boolean isAlive = false;
 	
 	/* === Constructors === */
 	
@@ -46,6 +47,8 @@ public class Player {
 	public String getPlayerName() {return playerName;}
 	public int getUserID() {return userID;}
 	public int getScore() {return score;}
+	public float getAcceleration() {return acceleration;}
+	public boolean isAlive() {return isAlive;}
 	
 	/** @return the hitbox circle of the player. */
 	public Circle getHitbox() {
@@ -67,6 +70,8 @@ public class Player {
 	public void setScore(int score) {this.score = score;}
 	public void setVelocity(Vector2f velocity) {this.velocity = velocity;}
 	public void setPlayerName(String playerName) {this.playerName = playerName;}
+	public void setAlive(boolean isAlive) {this.isAlive = isAlive;}
+	private void setAcceleration(float acc) {this.acceleration = acc;}
 	
 	/* === Misc. methods === */
 	
@@ -88,20 +93,24 @@ public class Player {
 	 */
 	public static Player fromJSON(JsonObject object) {
 		int userID = object.get("userID").asInt();
-		String userName = object.get("userName").asString();
+		String username = object.get("username").asString();
 		int score = object.get("score").asInt();
 		float xPos = object.get("xPos").asFloat();
 		float yPos = object.get("yPos").asFloat();
 		float xVel = object.get("xVel").asFloat();
 		float yVel = object.get("yVel").asFloat();
+		float acc = object.get("acc").asFloat();
 		float radius = object.get("radius").asFloat();
+		boolean isAlive = object.get("isAlive").asBoolean();
 		
-		Player player = new Player(xPos, yPos, radius, userName);
+		Player player = new Player(xPos, yPos, radius, username);
 		Vector2f velocityVector = new Vector2f(xVel, yVel);
 		
 		player.setVelocity(velocityVector);
 		player.setScore(score);
 		player.setUserID(userID);
+		player.setAlive(isAlive);
+		player.setAcceleration(acc);
 		
 		return player;
 	}
@@ -114,26 +123,28 @@ public class Player {
 	 */
 	public static JsonObject toJSON(Player player) {
 		int userID = player.getUserID();
-		String userName = player.getPlayerName();
+		String username = player.getPlayerName();
 		int score = player.getScore();
 		float xPos = player.getPosition().getX();
 		float yPos = player.getPosition().getY();
 		float xVel = player.getVelocity().getX();
 		float yVel = player.getVelocity().getY();
+		float acc = player.getAcceleration();
 		float radius = player.getHitbox().getRadius();
+		boolean isAlive = player.isAlive();
 		
 		JsonObject jsonObject = new JsonObject()
 		.add("userID", userID)
-		.add("userName", userName)
+		.add("username", username)
 		.add("score", score)
 		.add("xPos", xPos)
 		.add("yPos", yPos)
 		.add("xVel", xVel)
 		.add("yVel", yVel)
-		.add("radius", radius);
+		.add("acc", acc)
+		.add("radius", radius)
+		.add("isAlive", isAlive);
 		
 		return jsonObject;
 	}
-
-	
 }
