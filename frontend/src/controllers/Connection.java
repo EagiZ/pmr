@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
 
+import models.Message;
+
 /**
  * Connection class communicates with a game server.
  */
@@ -34,11 +36,10 @@ public class Connection {
 	public Connection(String ipAddress, int port) {
 		this.ipAddress = ipAddress;
 		this.port = port;
-		connect();
 	}
 	
 	/**
-	 * Alternate constructor, port number set to 7777.
+	 * Alternative constructor, port number set to 7777.
 	 * @param ipAddress IP Address to connect to.
 	 */
 	public Connection(String ipAddress) {
@@ -47,34 +48,40 @@ public class Connection {
 	
 	/* === Accessors === */
 	
-	/** @return IP address of game server */
 	public String getIpAddress() {return ipAddress;}
-	/** @return Port number of game server */
 	public int getPort() {return port;}
 	
 	/* === Mutators === */
-	/* === Misc. Functions === */
+	/* === Misc. methods === */
 
 	/**
 	 * Connects client to ipAddress:port
+	 * @param player Player to connect to server
+	 * @return Answer from server
 	 */
-	private void connect() {
+	public String connect(String player) {
+		String answer = "";
 		try {
 			Socket clientSocket = new Socket(ipAddress, port);
 			send = new DataOutputStream(clientSocket.getOutputStream());
 			receive = new BufferedReader(new InputStreamReader(
 					clientSocket.getInputStream()));
+			//answer = handshake(player);
 		} catch (IOException e) {
 			e.printStackTrace();
-		}
+		} return answer;
 	}
 
 	/**
-	 *  Disconnects client from server.
+	 * Disconnects client from server.
 	 */
 	public void disconnect() {
 		try {
+			// TODO: fix so that disconnect sends user id.
+			send(new Message("disconnect"));
 			clientSocket.close();
+			send.close();
+			receive.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -84,17 +91,17 @@ public class Connection {
 	 * Send data to server
 	 * @param data Data to send to server
 	 */
-	public void send(String data) {
+	public void send(Message message) {
 		// TODO.
 		try {
-			send.writeBytes(data + '\n');
+			send.writeBytes(message.getMessage());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 	
 	/**
-	 * Reveive data from server
+	 * Receive data from server
 	 * @return Data received from server
 	 */
 	public String receive() {
@@ -105,5 +112,15 @@ public class Connection {
 		} catch (IOException e) {
 			e.printStackTrace();
 		} return str;
+	}
+	
+	/**
+	 * Handshakes with server.
+	 * @param  player Player to connect to server
+	 * @return Handshake answer from server.
+	 */
+	private String handshake(String player) {
+		send(new Message("connect", player)); // Version information et.c. should be sent here.
+		return receive();
 	}
 }
