@@ -66,7 +66,7 @@ public class Connection {
 			send = new DataOutputStream(clientSocket.getOutputStream());
 			receive = new BufferedReader(new InputStreamReader(
 					clientSocket.getInputStream()));
-			//answer = handshake(player);
+			answer = handshake(player);
 		} catch (IOException e) {
 			e.printStackTrace();
 		} return answer;
