@@ -93,5 +93,5 @@ connectCommand clientHandle cmd = do
   hPutStrLn clientHandle (unwords $ tail cmd) -- TODO: do something valuable
 
 testPrint :: User -> IO ()
-testPrint (User userID userName score xPos yPos xVel yVel radius) =
+testPrint (User userID userName score xPos yPos xVel yVel radius isAlive) =
   putStrLn ("xPos: " ++ show xPos ++ " - yPos: " ++ show yPos)
