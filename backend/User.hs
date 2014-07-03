@@ -19,7 +19,8 @@ data User = User { userID :: Int,
                    yPos :: Float,
                    xVel :: Float,
                    yVel :: Float,
-                   radius :: Float
+                   radius :: Float,
+                   isAlive :: Bool
                  } deriving (Show)
 
 -- Instances to convert our type to/from JSON.
@@ -33,10 +34,11 @@ instance FromJSON User where
     <*> v .: "xVel"
     <*> v .: "yVel"
     <*> v .: "radius"
+    <*> v .: "isAlive"
   parseJSON _ = Control.Applicative.empty
 
 instance ToJSON User where
-  toJSON (User userID userName score xPos yPos xVel yVel radius) =
+  toJSON (User userID userName score xPos yPos xVel yVel radius isAlive) =
     object [ "userID"   .= userID
            , "userName" .= userName
            , "score"    .= score
@@ -45,6 +47,7 @@ instance ToJSON User where
            , "xVel"     .= xVel
            , "yVel"     .= yVel
            , "radius"   .= radius
+           , "isAlive"   .= isAlive
            ]
 
 decodeJSON :: FromJSON a => BS.ByteString -> Either String a
