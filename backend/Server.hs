@@ -67,6 +67,7 @@ supervisor broadcastChan messageBox userL = do
           writeChan chan userAsJSON
           supervisor broadcastChan messageBox (createdUser:userL)
     ("disconnect") -> do
+      -- todo parse user and act accordingly
       putStrLn "supervisor: disconnect tbi"
       supervisor broadcastChan messageBox userL
     _ -> do
@@ -79,6 +80,11 @@ commandProcessor clientHandle messageBox  = do
   let cmd = words fromClient
   case (head cmd) of
     ("connect") -> do
+      recieveChannel <- newChan
+      writeChan messageBox (fromClient, recieveChannel)
+      line <- readChan recieveChannel
+      hPutStrLn clientHandle line
+    ("disconnect") -> do -- TODO
       recieveChannel <- newChan
       writeChan messageBox (fromClient, recieveChannel)
       line <- readChan recieveChannel

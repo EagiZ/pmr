@@ -10,7 +10,11 @@ import org.newdawn.slick.geom.Vector2f;
 
 import com.eclipsesource.json.JsonObject;
 
+
+
 public class Game extends BasicGame {
+	
+	
 	
 	Input input;
 	Player player;
@@ -29,6 +33,12 @@ public class Game extends BasicGame {
 		dragline = new Dragline();
 		connection = new Connection("127.0.0.1");
 		player = Player.fromJSON(JsonObject.readFrom(connection.connect(Player.toJSON(player).toString())));
+		
+		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+		    public void run() {
+		    	connection.disconnect();
+		    }
+		}));
 	}
 
 	@Override

@@ -75,7 +75,7 @@ public class Connection {
 	/**
 	 * Disconnects client from server.
 	 */
-	public void disconnect() {
+	public void disconnect() { // TODO: send user as json at end of message
 		try {
 			// TODO: fix so that disconnect sends user id.
 			send(new Message("disconnect"));
@@ -108,7 +108,9 @@ public class Connection {
 		// TODO.
 		String str = "";
 		try {
+			System.out.println("Trying to recieve");
 			str = receive.readLine();
+			System.out.println("Recieved message: " + str);
 		} catch (IOException e) {
 			e.printStackTrace();
 		} return str;
