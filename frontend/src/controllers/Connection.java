@@ -62,7 +62,7 @@ public class Connection {
 	public String connect(String player) {
 		String answer = "";
 		try {
-			Socket clientSocket = new Socket(ipAddress, port);
+			clientSocket = new Socket(ipAddress, port);
 			send = new DataOutputStream(clientSocket.getOutputStream());
 			receive = new BufferedReader(new InputStreamReader(
 					clientSocket.getInputStream()));
