@@ -1,5 +1,9 @@
 package views;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 import controllers.*;
 import models.*;
 
@@ -9,18 +13,18 @@ import org.newdawn.slick.geom.Line;
 import org.newdawn.slick.geom.Vector2f;
 
 import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonValue;
 
 
 
-public class Game extends BasicGame {
-	
-	
-	
+public class Game extends BasicGame {	
 	Input input;
 	Player player;
 	Dragline dragline;
 	Boolean playerPressed = false;
 	Connection connection;
+	private Set<Player> players = Collections.synchronizedSet(new HashSet<Player>());
 	
 	public Game() {
         super("Putt My Redneck");
@@ -103,6 +107,35 @@ public class Game extends BasicGame {
 		}
 		g.setColor(new Color(0xff, 0, 0x80));
 		g.fill(player.getHitbox());
+	}
+	
+	/**
+	 * Serializes players to JsonArray.
+	 * @return JsonArray containing all Players in Set players as JsonValues.
+	 */
+	public JsonArray playersAsJson() {
+		JsonArray playersAsJson = new JsonArray();
+		
+		for (Player player : players) {
+			playersAsJson.add(Player.toJSON(player));
+		}
+		
+		return playersAsJson;
+	}
+	
+	/**
+	 * @param playersAsJson JsonArray containing Players in Json-format.
+	 * @return all parsed Players in playersAsJson as a Set.
+	 */
+	public Set<Player> playersToSet(JsonArray playersAsJson) {
+		Set<Player> parsedPlayers = 
+				Collections.synchronizedSet(new HashSet<Player>());
+		
+		for (JsonValue val : playersAsJson) {
+			parsedPlayers.add(Player.fromJSON(val.asObject()));
+		}
+		
+		return parsedPlayers;
 	}
 	
 	public static void main(String[] arguments) {
