@@ -33,11 +33,8 @@ sockHandler sock broadcastChan messageBox = do
   (clientHandle, _HostName, _PortNumber) <- accept sock
   hSetBuffering clientHandle NoBuffering
   putStrLn "User connected."
-  _ <- forkIO $ commandProcessor clientHandle messageBox -- Start commandProcessor in new thread
-  broadcastChan' <- dupChan broadcastChan
-  _ <- forkIO $ recieveLoop clientHandle broadcastChan' messageBox -- Start recieveLoop in new thread
-  broadcastChan'' <- dupChan broadcastChan
-  sockHandler sock broadcastChan'' messageBox
+  _ <- forkIO $ commandProcessor clientHandle broadcastChan messageBox -- Start commandProcessor in new thread
+  sockHandler sock broadcastChan messageBox
 
 tickHandler :: Chan Msg -> Int -> IO ()
 tickHandler messageBox sleepTime = do
@@ -66,8 +63,6 @@ supervisor broadcastChan messageBox userL = do
           putStrLn err
         Right user -> do
           let newUserL = updateUser userL user
-          --let usersAsJSON = C.unpack $ BS.toStrict $ encodeJSON newUserL
-          --writeChan chan usersAsJSON
           supervisor broadcastChan messageBox newUserL
     ("connect") -> do
       let playerAsJSONStr = unwords $ tail cmd
@@ -111,8 +106,8 @@ supervisor broadcastChan messageBox userL = do
       putStrLn "recieved message in messageBox"
       supervisor broadcastChan messageBox userL
 
-commandProcessor :: Handle -> Chan Msg  -> IO ()
-commandProcessor clientHandle messageBox = do
+commandProcessor :: Handle -> Chan Msg -> Chan Msg  -> IO ()
+commandProcessor clientHandle broadcastChan messageBox = do
   fromClient <- hGetLine clientHandle
   let cmd = words fromClient
   case (head cmd) of
@@ -121,6 +116,9 @@ commandProcessor clientHandle messageBox = do
       writeChan messageBox (fromClient, recieveChannel)
       line <- readChan recieveChannel
       hPutStrLn clientHandle line
+      broadcastChan' <- dupChan broadcastChan
+      _ <- forkIO $ recieveLoop clientHandle broadcastChan' messageBox -- Start recieveLoop in new thread
+      putStrLn "Player connected"
     ("disconnect") -> do -- TODO
       recieveChannel <- newChan
       writeChan messageBox (fromClient, recieveChannel)
@@ -134,10 +132,8 @@ commandProcessor clientHandle messageBox = do
       hPutStrLn clientHandle line
     ("move") -> do
       -- TODO: parse tail cmd (which should be JSON-array containing User objects) etc.
-      recieveChannel <- newChan
-      writeChan messageBox (fromClient, recieveChannel)
-      line <- readChan recieveChannel
-      hPutStrLn clientHandle line
+      ignoreChannel <- newChan
+      writeChan messageBox (fromClient, ignoreChannel)
     _ -> do -- TODO
       let bsFromClient = BS.fromStrict $ C.pack fromClient
       let decoded = decodeJSON bsFromClient :: Either String User
@@ -149,7 +145,7 @@ commandProcessor clientHandle messageBox = do
           testPrint user
           let newUser' = C.unpack $ BS.toStrict $ encodeJSON user
           hPutStrLn clientHandle newUser'
-  commandProcessor clientHandle messageBox
+  commandProcessor clientHandle broadcastChan messageBox
 
 -- a recieve loop that should be created along with a comma+ndProcessor with the same handle
 recieveLoop :: Handle -> Chan Msg -> Chan Msg -> IO ()
