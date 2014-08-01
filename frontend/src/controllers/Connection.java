@@ -116,6 +116,15 @@ public class Connection {
 		} return str;
 	}
 	
+	
+	/**
+	 * @return All players in game
+	 */
+	public String refresh() {
+		send(new Message("refresh"));
+		return receive();
+	}
+	
 	/**
 	 * Handshakes with server.
 	 * @param  player Player to connect to server
