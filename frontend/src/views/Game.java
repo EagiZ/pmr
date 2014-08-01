@@ -60,7 +60,7 @@ public class Game extends BasicGame {
 			}
 		} player.update();
 		
-		//testCon.receive(); //TODO, do something with the result
+		players = playersToSet(JsonArray.readFrom(connection.receive())); //TODO, do something with the result
 	}
 	
 	@Override
@@ -73,7 +73,7 @@ public class Game extends BasicGame {
 	
 	@Override
 	public void mousePressed(int button, int x, int y) {
-		players = playersToSet(JsonArray.readFrom(connection.refresh()));
+		//players = playersToSet(JsonArray.readFrom(connection.refresh()));
 		Circle playerHitBox = player.getHitbox();
 		
 		if (playerHitBox.contains(x, y)) {
