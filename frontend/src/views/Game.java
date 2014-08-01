@@ -36,8 +36,10 @@ public class Game extends BasicGame {
 		player = new Player("Kalle Kleauparret");
 		dragline = new Dragline();
 		connection = new Connection("127.0.0.1");
-		player = Player.fromJSON(JsonObject.readFrom(connection.connect(Player.toJSON(player).toString())));
-		
+		player = Player.fromJSON(JsonObject.readFrom(
+				connection.connect(Player.toJSON(player).toString())));
+		players = playersToSet(JsonArray.readFrom(connection.refresh()));
+
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 		    public void run() {
 		    	connection.disconnect();
@@ -49,7 +51,15 @@ public class Game extends BasicGame {
 	public void update(GameContainer container, int delta) throws SlickException {
 		dragline.setStart(player.getPosition());
 		dragline.update();
-		player.update();
+		
+		for(Player p : players) {
+			if(p.getUserID() == player.getUserID()) {
+				player = p;
+			} else {
+				p.update();
+			}
+		} player.update();
+		
 		//testCon.receive(); //TODO, do something with the result
 	}
 	
@@ -63,6 +73,7 @@ public class Game extends BasicGame {
 	
 	@Override
 	public void mousePressed(int button, int x, int y) {
+		players = playersToSet(JsonArray.readFrom(connection.refresh()));
 		Circle playerHitBox = player.getHitbox();
 		
 		if (playerHitBox.contains(x, y)) {
@@ -88,10 +99,10 @@ public class Game extends BasicGame {
 			
 			String sampleJSON = Player.toJSON(player).toString();
 			
-			connection.send(new Message("", sampleJSON));
+			connection.send(new Message("move", sampleJSON));
 			
 			String testStr = connection.receive();
-			player = Player.fromJSON(JsonObject.readFrom(testStr));
+			players = playersToSet(JsonArray.readFrom(testStr));
 			
 			dragline.setAlive(false);
 		} 
@@ -100,6 +111,11 @@ public class Game extends BasicGame {
 
 	@Override
 	public void render(GameContainer container, Graphics g) throws SlickException {
+		g.setColor(new Color(0xff, 0x80, 0));
+		for(Player p : players) {
+			if(p.getUserID() != player.getUserID()) g.fill(p.getHitbox());
+		}
+		
 		if(dragline.isAlive()) { 
 			g.setColor(dragline.getColor());
 			g.draw(dragline.getLine());
@@ -107,6 +123,8 @@ public class Game extends BasicGame {
 		}
 		g.setColor(new Color(0xff, 0, 0x80));
 		g.fill(player.getHitbox());
+		
+		
 	}
 	
 	/**
