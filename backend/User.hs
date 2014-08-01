@@ -53,6 +53,10 @@ instance ToJSON User where
            , "isAlive"   .= isAlive
            ]
 
+update :: User -> User
+update (User userID username score xPos yPos xVel yVel acc radius isAlive) =
+  User userID username score (xPos+xVel) (yPos+yVel) (xVel*acc) (yVel*acc) acc radius isAlive
+
 decodeJSON :: FromJSON a => BS.ByteString -> Either String a
 decodeJSON str =
   eitherDecode str
