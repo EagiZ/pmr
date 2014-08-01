@@ -35,14 +35,14 @@ public class Game extends BasicGame {
 		//player = new Player("Kalle Kleauparret");
 		player = new Player("Kalle Kleauparret");
 		dragline = new Dragline();
-		connection = new Connection("127.0.0.1");
+		connection = new Connection("92.32.224.219");
 		player = Player.fromJSON(JsonObject.readFrom(
 				connection.connect(Player.toJSON(player).toString())));
 		players = playersToSet(JsonArray.readFrom(connection.refresh()));
 
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 		    public void run() {
-		    	connection.disconnect();
+		    	connection.disconnect(Player.toJSON(player).toString());
 		    }
 		}));
 	}
@@ -60,7 +60,11 @@ public class Game extends BasicGame {
 			}
 		} player.update();
 		
-		players = playersToSet(JsonArray.readFrom(connection.receive())); //TODO, do something with the result
+		String tempString = connection.receiveNotBlocking();
+		
+		if(tempString != null) { 
+			players = playersToSet(JsonArray.readFrom(tempString)); 
+		}
 	}
 	
 	@Override
