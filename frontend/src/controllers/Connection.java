@@ -75,10 +75,10 @@ public class Connection {
 	/**
 	 * Disconnects client from server.
 	 */
-	public void disconnect() { // TODO: send user as json at end of message
+	public void disconnect(String player) { // TODO: send user as json at end of message
 		try {
 			// TODO: fix so that disconnect sends user id.
-			send(new Message("disconnect"));
+			send(new Message("disconnect", player));
 			clientSocket.close();
 			send.close();
 			receive.close();
@@ -116,6 +116,16 @@ public class Connection {
 		} return str;
 	}
 	
+	public String receiveNotBlocking() {
+		String str = null;
+		try {
+			if(receive.ready()) {
+				str = receive();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} return str;
+	}
 	
 	/**
 	 * @return All players in game
