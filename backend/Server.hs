@@ -1,7 +1,7 @@
 import Network (listenOn, withSocketsDo, accept, PortID(..), Socket)
 import System.Environment (getArgs)
 import System.IO (hSetBuffering, hGetLine, hPutStrLn, BufferMode(..), Handle)
-import Control.Concurrent (forkIO, myThreadId)
+import Control.Concurrent (forkIO, myThreadId, threadDelay)
 import Control.Concurrent.Chan
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString.Char8 as C
@@ -18,12 +18,14 @@ main :: IO ()
 main = withSocketsDo $ do -- withSocketsDo required for Windows usage
   args <- getArgs
   let port = fromIntegral (read $ head args :: Int)
+  let tickrate = 64
   socket <- listenOn $ PortNumber port
   putStrLn $ "Listening on port " ++ (head args)
   putStrLn $ "Spawning supervisor"
   broadcastChan <- newChan
   messageBox <- newChan
   _ <- forkIO $ supervisor broadcastChan messageBox []
+  _ <- forkIO $ tickHandler messageBox (1000000 `div` tickrate)
   sockHandler socket broadcastChan messageBox
 
 sockHandler :: Socket -> Chan Msg -> Chan Msg -> IO ()
@@ -34,7 +36,15 @@ sockHandler sock broadcastChan messageBox = do
   _ <- forkIO $ commandProcessor clientHandle messageBox -- Start commandProcessor in new thread
   broadcastChan' <- dupChan broadcastChan
   _ <- forkIO $ recieveLoop clientHandle broadcastChan' messageBox -- Start recieveLoop in new thread
-  sockHandler sock broadcastChan messageBox
+  broadcastChan'' <- dupChan broadcastChan
+  sockHandler sock broadcastChan'' messageBox
+
+tickHandler :: Chan Msg -> Int -> IO ()
+tickHandler messageBox sleepTime = do
+  threadDelay sleepTime
+  trashDummy <- newChan
+  writeChan messageBox ("tick", trashDummy)
+  tickHandler messageBox sleepTime 
 
 createUniqueID :: [User] -> [Int] -> Int
 createUniqueID [] candidates =
@@ -56,8 +66,8 @@ supervisor broadcastChan messageBox userL = do
           putStrLn err
         Right user -> do
           let newUserL = updateUser userL user
-          let usersAsJSON = C.unpack $ BS.toStrict $ encodeJSON newUserL
-          writeChan chan usersAsJSON
+          --let usersAsJSON = C.unpack $ BS.toStrict $ encodeJSON newUserL
+          --writeChan chan usersAsJSON
           supervisor broadcastChan messageBox newUserL
     ("connect") -> do
       let playerAsJSONStr = unwords $ tail cmd
@@ -91,12 +101,18 @@ supervisor broadcastChan messageBox userL = do
       let usersAsJSON = C.unpack $ BS.toStrict $ encodeJSON userL
       writeChan chan usersAsJSON
       supervisor broadcastChan messageBox (userL)
+    ("tick") -> do
+      let newUserL = updateUsers userL
+      let usersAsJSON = C.unpack $ BS.toStrict $ encodeJSON newUserL
+      trashDummy <- newChan
+      writeChan broadcastChan ("refresh " ++ usersAsJSON, trashDummy)
+      supervisor broadcastChan messageBox $ updateUsers userL
     _ -> do
       putStrLn "recieved message in messageBox"
       supervisor broadcastChan messageBox userL
 
 commandProcessor :: Handle -> Chan Msg  -> IO ()
-commandProcessor clientHandle messageBox  = do
+commandProcessor clientHandle messageBox = do
   fromClient <- hGetLine clientHandle
   let cmd = words fromClient
   case (head cmd) of
@@ -135,7 +151,7 @@ commandProcessor clientHandle messageBox  = do
           hPutStrLn clientHandle newUser'
   commandProcessor clientHandle messageBox
 
--- a recieve loop that should be created along with a commandProcessor with the same handle
+-- a recieve loop that should be created along with a comma+ndProcessor with the same handle
 recieveLoop :: Handle -> Chan Msg -> Chan Msg -> IO ()
 recieveLoop clientHandle broadcastChan messageBox = do
   (line, chan) <- readChan broadcastChan
@@ -143,7 +159,7 @@ recieveLoop clientHandle broadcastChan messageBox = do
   case (head cmd) of
     ("refresh") -> do
       -- TODO: parse tail cmd (which should be JSON-array containing User objects) etc.
-      putStrLn "recieveLoop recieved refresh-message"
+      hPutStrLn clientHandle $ unwords $ tail cmd
     _ -> do
       putStrLn "recieveLoop recieved unkown command"
       --writeChan messageBox "hello supervisor"
