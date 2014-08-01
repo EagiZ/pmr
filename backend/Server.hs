@@ -47,8 +47,18 @@ supervisor broadcastChan messageBox userL = do
   (line, chan) <- readChan messageBox
   let cmd = words line
   case (head cmd) of
-    ("move") ->
-      putStrLn "supervisor: move tbi"
+    ("move") -> do
+      let playerAsJSONStr = unwords $ tail cmd
+      let bsFromClient = BS.fromStrict $ C.pack playerAsJSONStr
+      let decoded = decodeJSON bsFromClient :: Either String User
+      case decoded of
+        Left err -> do
+          putStrLn err
+        Right user -> do
+          let newUserL = updateUser userL user
+          let usersAsJSON = C.unpack $ BS.toStrict $ encodeJSON newUserL
+          writeChan chan usersAsJSON
+          supervisor broadcastChan messageBox newUserL
     ("connect") -> do
       let playerAsJSONStr = unwords $ tail cmd
       let bsFromClient = BS.fromStrict $ C.pack playerAsJSONStr
@@ -63,13 +73,24 @@ supervisor broadcastChan messageBox userL = do
           let createdUser = User newUserID username 0 tempX tempY 0.0 0.0 acc tempRadius False
           testPrint user
           testPrint createdUser
+          let newUserL = createdUser:userL
           let userAsJSON = C.unpack $ BS.toStrict $ encodeJSON createdUser
           writeChan chan userAsJSON
-          supervisor broadcastChan messageBox (createdUser:userL)
+          supervisor broadcastChan messageBox (newUserL)
     ("disconnect") -> do
       -- todo parse user and act accordingly
-      putStrLn "supervisor: disconnect tbi"
-      supervisor broadcastChan messageBox userL
+      let playerAsJSONStr = unwords $ tail cmd
+      let bsFromClient = BS.fromStrict $ C.pack playerAsJSONStr
+      let decoded = decodeJSON bsFromClient :: Either String User
+      case decoded of
+        Left err -> do
+          putStrLn err
+        Right user -> do
+          supervisor broadcastChan messageBox (removeUser userL user)
+    ("refresh") -> do
+      let usersAsJSON = C.unpack $ BS.toStrict $ encodeJSON userL
+      writeChan chan usersAsJSON
+      supervisor broadcastChan messageBox (userL)
     _ -> do
       putStrLn "recieved message in messageBox"
       supervisor broadcastChan messageBox userL
@@ -91,7 +112,16 @@ commandProcessor clientHandle messageBox  = do
       hPutStrLn clientHandle line
     ("refresh") -> do
       -- TODO: parse tail cmd (which should be JSON-array containing User objects) etc.
-      putStrLn "recieveLoop recieved refresh-message"
+      recieveChannel <- newChan
+      writeChan messageBox (fromClient, recieveChannel)
+      line <- readChan recieveChannel
+      hPutStrLn clientHandle line
+    ("move") -> do
+      -- TODO: parse tail cmd (which should be JSON-array containing User objects) etc.
+      recieveChannel <- newChan
+      writeChan messageBox (fromClient, recieveChannel)
+      line <- readChan recieveChannel
+      hPutStrLn clientHandle line
     _ -> do -- TODO
       let bsFromClient = BS.fromStrict $ C.pack fromClient
       let decoded = decodeJSON bsFromClient :: Either String User
@@ -127,6 +157,29 @@ connectCommand :: Handle -> [String] -> IO ()
 connectCommand clientHandle cmd = do
   hPutStrLn clientHandle (unwords $ tail cmd) -- TODO: do something valuable
 
+updateUsers :: [User] -> [User]
+updateUsers [] = []
+updateUsers (user:users) =
+  (update user) : updateUsers users
+
+updateUser :: [User] -> User -> [User]
+updateUser [] _ = []
+updateUser (oldUser@(User oldID _ _ _ _ _ _ _ _ _):users) newUser@(User newID _ _ _ _ _ _ _ _ _) =
+  case oldID of
+    newID ->
+      newUser:users
+    _ ->
+      oldUser : updateUser users newUser
+
+removeUser :: [User] -> User -> [User]
+removeUser [] _ = []
+removeUser (thisUser@(User thisID _ _ _ _ _ _ _ _ _):users) targetUser@(User targetID _ _ _ _ _ _ _ _ _) =
+  case thisID of
+    targetID ->
+      users
+    _ ->
+      thisUser : removeUser users targetUser
+      
 testPrint :: User -> IO ()
 testPrint (User userID username score xPos yPos xVel yVel acc radius isAlive) =
   putStrLn ("xPos: " ++ show xPos ++ " - yPos: " ++ show yPos)
