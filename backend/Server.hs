@@ -165,20 +165,18 @@ updateUsers (user:users) =
 updateUser :: [User] -> User -> [User]
 updateUser [] _ = []
 updateUser (oldUser@(User oldID _ _ _ _ _ _ _ _ _):users) newUser@(User newID _ _ _ _ _ _ _ _ _) =
-  case oldID of
-    newID ->
-      newUser:users
-    _ ->
-      oldUser : updateUser users newUser
+  if oldID == newID then
+    newUser:users
+  else
+    oldUser : updateUser users newUser
 
 removeUser :: [User] -> User -> [User]
 removeUser [] _ = []
 removeUser (thisUser@(User thisID _ _ _ _ _ _ _ _ _):users) targetUser@(User targetID _ _ _ _ _ _ _ _ _) =
-  case thisID of
-    targetID ->
-      users
-    _ ->
-      thisUser : removeUser users targetUser
+  if thisID == targetID then
+    users
+  else
+    thisUser : removeUser users targetUser
       
 testPrint :: User -> IO ()
 testPrint (User userID username score xPos yPos xVel yVel acc radius isAlive) =
