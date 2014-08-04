@@ -18,7 +18,7 @@ main :: IO ()
 main = withSocketsDo $ do -- withSocketsDo required for Windows usage
   args <- getArgs
   let port = fromIntegral (read $ head args :: Int)
-  let tickrate = 64
+  let tickrate = 128
   socket <- listenOn $ PortNumber port
   putStrLn $ "Listening on port " ++ (head args)
   putStrLn $ "Spawning supervisor"
@@ -33,7 +33,8 @@ sockHandler sock broadcastChan messageBox = do
   (clientHandle, _HostName, _PortNumber) <- accept sock
   hSetBuffering clientHandle NoBuffering
   putStrLn "User connected."
-  _ <- forkIO $ commandProcessor clientHandle broadcastChan messageBox -- Start commandProcessor in new thread
+  socketChan <- newChan
+  _ <- forkIO $ commandProcessor clientHandle broadcastChan messageBox socketChan -- Start commandProcessor in new thread
   sockHandler sock broadcastChan messageBox
 
 tickHandler :: Chan Msg -> Int -> IO ()
@@ -103,33 +104,34 @@ supervisor broadcastChan messageBox userL = do
       writeChan broadcastChan ("refresh " ++ usersAsJSON, trashDummy)
       supervisor broadcastChan messageBox $ updateUsers userL
     _ -> do
-      putStrLn "recieved message in messageBox"
+      putStrLn "received message in messageBox"
       supervisor broadcastChan messageBox userL
 
-commandProcessor :: Handle -> Chan Msg -> Chan Msg  -> IO ()
-commandProcessor clientHandle broadcastChan messageBox = do
+commandProcessor :: Handle -> Chan Msg -> Chan Msg -> Chan String -> IO ()
+commandProcessor clientHandle broadcastChan messageBox socketChan = do
   fromClient <- hGetLine clientHandle
   let cmd = words fromClient
   case (head cmd) of
     ("connect") -> do
-      recieveChannel <- newChan
-      writeChan messageBox (fromClient, recieveChannel)
-      line <- readChan recieveChannel
-      hPutStrLn clientHandle line
+      receiveChannel <- newChan
+      writeChan messageBox (fromClient, receiveChannel)
+      line <- readChan receiveChannel
+      writeChan socketChan line
       broadcastChan' <- dupChan broadcastChan
-      _ <- forkIO $ recieveLoop clientHandle broadcastChan' messageBox -- Start recieveLoop in new thread
+      _ <- forkIO $ sendLoop clientHandle socketChan
+      _ <- forkIO $ receiveLoop clientHandle broadcastChan' messageBox socketChan -- Start receiveLoop in new thread
       putStrLn "Player connected"
     ("disconnect") -> do -- TODO
-      recieveChannel <- newChan
-      writeChan messageBox (fromClient, recieveChannel)
-      line <- readChan recieveChannel
-      hPutStrLn clientHandle line
+      receiveChannel <- newChan
+      writeChan messageBox (fromClient, receiveChannel)
+      line <- readChan receiveChannel
+      writeChan socketChan line
     ("refresh") -> do
       -- TODO: parse tail cmd (which should be JSON-array containing User objects) etc.
-      recieveChannel <- newChan
-      writeChan messageBox (fromClient, recieveChannel)
-      line <- readChan recieveChannel
-      hPutStrLn clientHandle line
+      receiveChannel <- newChan
+      writeChan messageBox (fromClient, receiveChannel)
+      line <- readChan receiveChannel
+      writeChan socketChan line
     ("move") -> do
       -- TODO: parse tail cmd (which should be JSON-array containing User objects) etc.
       ignoreChannel <- newChan
@@ -140,26 +142,33 @@ commandProcessor clientHandle broadcastChan messageBox = do
       case decoded of
         Left err -> do
           putStrLn err
-          hPutStrLn clientHandle err
+          writeChan socketChan err
         Right user -> do
           testPrint user
-          let newUser' = C.unpack $ BS.toStrict $ encodeJSON user
-          hPutStrLn clientHandle newUser'
-  commandProcessor clientHandle broadcastChan messageBox
+          let newUser = C.unpack $ BS.toStrict $ encodeJSON user
+          writeChan socketChan newUser
+  commandProcessor clientHandle broadcastChan messageBox socketChan
 
--- a recieve loop that should be created along with a comma+ndProcessor with the same handle
-recieveLoop :: Handle -> Chan Msg -> Chan Msg -> IO ()
-recieveLoop clientHandle broadcastChan messageBox = do
-  (line, chan) <- readChan broadcastChan
+sendLoop :: Handle -> Chan String -> IO ()
+sendLoop clientHandle socketChan = do
+  line <- readChan socketChan
+  hPutStrLn clientHandle line
+  sendLoop clientHandle socketChan
+
+-- a receive loop that should be created along with a comma+ndProcessor with the same handle
+receiveLoop :: Handle -> Chan Msg -> Chan Msg -> Chan String -> IO ()
+receiveLoop clientHandle broadcastChan messageBox socketChan = do
+  (line, _) <- readChan broadcastChan
   let cmd = words line
   case (head cmd) of
     ("refresh") -> do
       -- TODO: parse tail cmd (which should be JSON-array containing User objects) etc.
-      hPutStrLn clientHandle $ unwords $ tail cmd
+      -- putStrLn $ unwords $ tail cmd
+      writeChan socketChan $ unwords $ tail cmd
     _ -> do
-      putStrLn "recieveLoop recieved unkown command"
+      putStrLn "receiveLoop received unkown command"
       --writeChan messageBox "hello supervisor"
-  recieveLoop clientHandle broadcastChan messageBox
+  receiveLoop clientHandle broadcastChan messageBox socketChan
 
 moveCommand :: Handle -> [String] -> IO ()
 moveCommand clientHandle cmd = do
