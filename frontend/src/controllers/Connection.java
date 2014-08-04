@@ -63,6 +63,7 @@ public class Connection {
 		String answer = "";
 		try {
 			clientSocket = new Socket(ipAddress, port);
+			clientSocket.setReceiveBufferSize(5); // Need more research into this
 			send = new DataOutputStream(clientSocket.getOutputStream());
 			receive = new BufferedReader(new InputStreamReader(
 					clientSocket.getInputStream()));
@@ -75,9 +76,8 @@ public class Connection {
 	/**
 	 * Disconnects client from server.
 	 */
-	public void disconnect(String player) { // TODO: send user as json at end of message
+	public void disconnect(String player) {
 		try {
-			// TODO: fix so that disconnect sends user id.
 			send(new Message("disconnect", player));
 			clientSocket.close();
 			send.close();
@@ -104,19 +104,20 @@ public class Connection {
 	 * Receive data from server
 	 * @return Data received from server
 	 */
-	public String receive() {
+	public synchronized String receive() {
 		// TODO.
 		String str = "";
 		try {
-			System.out.println("Trying to recieve");
+			//System.out.println("Trying to recieve");
+			
 			str = receive.readLine();
-			System.out.println("Recieved message: " + str);
+			//System.out.println("Recieved message: " + str);
 		} catch (IOException e) {
 			e.printStackTrace();
 		} return str;
 	}
 	
-	public String receiveNotBlocking() {
+	public synchronized String receiveNotBlocking() {
 		String str = null;
 		try {
 			if(receive.ready()) {
