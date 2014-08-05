@@ -7,7 +7,7 @@ import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString.Char8 as C
 import User
 
-type Msg = Either (String, Chan String) String -- TODO: Should probably be 'Either (Chan String) Bool'
+type Msg = Either (String, Chan String) String
 
 main :: IO ()
 main = withSocketsDo $ do -- withSocketsDo required for Windows usage
@@ -120,7 +120,7 @@ commandProcessor clientHandle broadcastChan messageBox socketChan = do
       _ <- forkIO $ sendLoop clientHandle socketChan
       _ <- forkIO $ receiveLoop clientHandle broadcastChan' messageBox socketChan -- Start receiveLoop in new thread
       putStrLn "Player connected"
-    ("disconnect") -> do -- TODO
+    ("disconnect") -> do
       writeChan messageBox $ Right fromClient
       hFlush clientHandle
       hClose clientHandle
