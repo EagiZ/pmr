@@ -1,24 +1,19 @@
 import Network (listenOn, withSocketsDo, accept, PortID(..), Socket)
 import System.Environment (getArgs)
-import System.IO (hSetBuffering, hGetLine, hPutStrLn, BufferMode(..), Handle)
+import System.IO (hSetBuffering, hGetLine, hPutStrLn, BufferMode(..), Handle, hClose, hFlush)
 import Control.Concurrent (forkIO, myThreadId, threadDelay)
 import Control.Concurrent.Chan
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString.Char8 as C
 import User
 
-
-type Msg = (String, Chan String) -- TODO: Should probably be 'Either (Chan String) Bool'
-
--- Notes:
--- hPutStrLn is used to send data back to the client
--- hGetLine reads data from client
+type Msg = Either (String, Chan String) String -- TODO: Should probably be 'Either (Chan String) Bool'
 
 main :: IO ()
 main = withSocketsDo $ do -- withSocketsDo required for Windows usage
   args <- getArgs
   let port = fromIntegral (read $ head args :: Int)
-  let tickrate = 128
+  let tickrate = 68
   socket <- listenOn $ PortNumber port
   putStrLn $ "Listening on port " ++ (head args)
   putStrLn $ "Spawning supervisor"
@@ -31,7 +26,7 @@ main = withSocketsDo $ do -- withSocketsDo required for Windows usage
 sockHandler :: Socket -> Chan Msg -> Chan Msg -> IO ()
 sockHandler sock broadcastChan messageBox = do
   (clientHandle, _HostName, _PortNumber) <- accept sock
-  hSetBuffering clientHandle NoBuffering
+  hSetBuffering clientHandle LineBuffering
   putStrLn "User connected."
   socketChan <- newChan
   _ <- forkIO $ commandProcessor clientHandle broadcastChan messageBox socketChan -- Start commandProcessor in new thread
@@ -40,8 +35,7 @@ sockHandler sock broadcastChan messageBox = do
 tickHandler :: Chan Msg -> Int -> IO ()
 tickHandler messageBox sleepTime = do
   threadDelay sleepTime
-  trashDummy <- newChan
-  writeChan messageBox ("tick", trashDummy)
+  writeChan messageBox $ Right ("tick")
   tickHandler messageBox sleepTime 
 
 createUniqueID :: [User] -> [Int] -> Int
@@ -52,60 +46,65 @@ createUniqueID (user@(User userID username score xPos yPos xVel yVel acc radius 
 
 supervisor :: Chan Msg -> Chan Msg -> [User] -> IO()
 supervisor broadcastChan messageBox userL = do
-  (line, chan) <- readChan messageBox
-  let cmd = words line
-  case (head cmd) of
-    ("move") -> do
-      let playerAsJSONStr = unwords $ tail cmd
-      let bsFromClient = BS.fromStrict $ C.pack playerAsJSONStr
-      let decoded = decodeJSON bsFromClient :: Either String User
-      case decoded of
-        Left err -> do
-          putStrLn err
-        Right user -> do
-          let newUserL = updateUser userL user
-          supervisor broadcastChan messageBox newUserL
-    ("connect") -> do
-      let playerAsJSONStr = unwords $ tail cmd
-      let bsFromClient = BS.fromStrict $ C.pack playerAsJSONStr
-      let decoded = decodeJSON bsFromClient :: Either String User
-      case decoded of
-        Left err -> do
-          putStrLn err
-        Right user@(User userID username score xPos yPos xVel yVel acc radius isAlive) -> do
-          let newUserID = createUniqueID userL [1..(length userL + 2)]
-          let (tempX, tempY) = (80.0 * fromIntegral(newUserID), 400.0) -- TODO: temp solution used for dev purposes
-          let tempRadius = 20.0
-          let createdUser = User newUserID username 0 tempX tempY 0.0 0.0 acc tempRadius False
-          testPrint user
-          testPrint createdUser
-          let newUserL = createdUser:userL
-          let userAsJSON = C.unpack $ BS.toStrict $ encodeJSON createdUser
-          writeChan chan userAsJSON
-          supervisor broadcastChan messageBox (newUserL)
-    ("disconnect") -> do
-      -- todo parse user and act accordingly
-      let playerAsJSONStr = unwords $ tail cmd
-      let bsFromClient = BS.fromStrict $ C.pack playerAsJSONStr
-      let decoded = decodeJSON bsFromClient :: Either String User
-      case decoded of
-        Left err -> do
-          putStrLn err
-        Right user -> do
-          supervisor broadcastChan messageBox (removeUser userL user)
-    ("refresh") -> do
-      let usersAsJSON = C.unpack $ BS.toStrict $ encodeJSON userL
-      writeChan chan usersAsJSON
-      supervisor broadcastChan messageBox (userL)
-    ("tick") -> do
-      let newUserL = updateUsers userL
-      let usersAsJSON = C.unpack $ BS.toStrict $ encodeJSON newUserL
-      trashDummy <- newChan
-      writeChan broadcastChan ("refresh " ++ usersAsJSON, trashDummy)
-      supervisor broadcastChan messageBox $ updateUsers userL
-    _ -> do
-      putStrLn "received message in messageBox"
-      supervisor broadcastChan messageBox userL
+  eitherMsg <- readChan messageBox
+  case eitherMsg of
+    Left (line, chan) -> do
+      let cmd = words line
+      case (head cmd) of
+        ("connect") -> do
+          let playerAsJSONStr = unwords $ tail cmd
+          let bsFromClient = BS.fromStrict $ C.pack playerAsJSONStr
+          let decoded = decodeJSON bsFromClient :: Either String User
+          case decoded of
+            Left err -> do
+              putStrLn err
+            Right user@(User userID username score xPos yPos xVel yVel acc radius isAlive) -> do
+              let newUserID = createUniqueID userL [1..(length userL + 2)]
+              let (tempX, tempY) = (80.0 * fromIntegral(newUserID), 400.0) -- TODO: temp solution used for dev purposes
+              let tempRadius = 20.0
+              let createdUser = User newUserID username 0 tempX tempY 0.0 0.0 acc tempRadius False
+              testPrint user
+              testPrint createdUser
+              let newUserL = createdUser:userL
+              let userAsJSON = C.unpack $ BS.toStrict $ encodeJSON createdUser
+              writeChan chan userAsJSON
+              supervisor broadcastChan messageBox (newUserL)
+        ("refresh") -> do
+          let usersAsJSON = C.unpack $ BS.toStrict $ encodeJSON userL
+          writeChan chan usersAsJSON
+          supervisor broadcastChan messageBox (userL)
+        _ -> do
+          putStrLn "SUPERVISOR ERROR: received unkown message in messageBox"
+    Right line -> do
+      let cmd = words line
+      case (head cmd) of
+        ("move") -> do
+          let playerAsJSONStr = unwords $ tail cmd
+          let bsFromClient = BS.fromStrict $ C.pack playerAsJSONStr
+          let decoded = decodeJSON bsFromClient :: Either String User
+          case decoded of
+            Left err -> do
+              putStrLn err
+            Right user -> do
+              let newUserL = updateUser userL user
+              supervisor broadcastChan messageBox newUserL
+        ("disconnect") -> do
+          let playerAsJSONStr = unwords $ tail cmd
+          let bsFromClient = BS.fromStrict $ C.pack playerAsJSONStr
+          let decoded = decodeJSON bsFromClient :: Either String User
+          case decoded of
+            Left err -> do
+              putStrLn err
+            Right user -> do
+              supervisor broadcastChan messageBox (removeUser userL user)
+        ("tick") -> do
+          let newUserL = updateUsers userL
+          let usersAsJSON = C.unpack $ BS.toStrict $ encodeJSON newUserL
+          writeChan broadcastChan $ Right ("refresh " ++ usersAsJSON)
+          supervisor broadcastChan messageBox $ updateUsers userL
+        _ -> do
+          putStrLn "SUPERVISOR ERROR: received unkown message in messageBox"
+        
 
 commandProcessor :: Handle -> Chan Msg -> Chan Msg -> Chan String -> IO ()
 commandProcessor clientHandle broadcastChan messageBox socketChan = do
@@ -114,7 +113,7 @@ commandProcessor clientHandle broadcastChan messageBox socketChan = do
   case (head cmd) of
     ("connect") -> do
       receiveChannel <- newChan
-      writeChan messageBox (fromClient, receiveChannel)
+      writeChan messageBox $ Left (fromClient, receiveChannel)
       line <- readChan receiveChannel
       writeChan socketChan line
       broadcastChan' <- dupChan broadcastChan
@@ -122,21 +121,19 @@ commandProcessor clientHandle broadcastChan messageBox socketChan = do
       _ <- forkIO $ receiveLoop clientHandle broadcastChan' messageBox socketChan -- Start receiveLoop in new thread
       putStrLn "Player connected"
     ("disconnect") -> do -- TODO
-      receiveChannel <- newChan
-      writeChan messageBox (fromClient, receiveChannel)
-      line <- readChan receiveChannel
-      writeChan socketChan line
+      writeChan messageBox $ Right fromClient
+      hFlush clientHandle
+      hClose clientHandle
+      putStrLn "exiting thread"
+      return ()
     ("refresh") -> do
-      -- TODO: parse tail cmd (which should be JSON-array containing User objects) etc.
       receiveChannel <- newChan
-      writeChan messageBox (fromClient, receiveChannel)
+      writeChan messageBox $ Left (fromClient, receiveChannel)
       line <- readChan receiveChannel
       writeChan socketChan line
     ("move") -> do
-      -- TODO: parse tail cmd (which should be JSON-array containing User objects) etc.
-      ignoreChannel <- newChan
-      writeChan messageBox (fromClient, ignoreChannel)
-    _ -> do -- TODO
+      writeChan messageBox $ Right fromClient
+    _ -> do
       let bsFromClient = BS.fromStrict $ C.pack fromClient
       let decoded = decodeJSON bsFromClient :: Either String User
       case decoded of
@@ -153,21 +150,23 @@ sendLoop :: Handle -> Chan String -> IO ()
 sendLoop clientHandle socketChan = do
   line <- readChan socketChan
   hPutStrLn clientHandle line
+  hFlush clientHandle
   sendLoop clientHandle socketChan
 
 -- a receive loop that should be created along with a comma+ndProcessor with the same handle
 receiveLoop :: Handle -> Chan Msg -> Chan Msg -> Chan String -> IO ()
 receiveLoop clientHandle broadcastChan messageBox socketChan = do
-  (line, _) <- readChan broadcastChan
-  let cmd = words line
-  case (head cmd) of
-    ("refresh") -> do
-      -- TODO: parse tail cmd (which should be JSON-array containing User objects) etc.
-      -- putStrLn $ unwords $ tail cmd
-      writeChan socketChan $ unwords $ tail cmd
+  eitherChan <- readChan broadcastChan
+  case eitherChan of
+    Right line -> do
+      let cmd = words line
+      case (head cmd) of
+        ("refresh") -> do
+          writeChan socketChan $ unwords $ tail cmd
+        _ -> do
+          putStrLn "RECEIVELOOP: received unkown command"
     _ -> do
-      putStrLn "receiveLoop received unkown command"
-      --writeChan messageBox "hello supervisor"
+      putStrLn "RECEIVELOOP: received Left (String, Chan String)"
   receiveLoop clientHandle broadcastChan messageBox socketChan
 
 moveCommand :: Handle -> [String] -> IO ()
