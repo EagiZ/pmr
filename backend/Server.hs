@@ -1,4 +1,5 @@
 import Network (listenOn, withSocketsDo, accept, PortID(..), Socket)
+import Network.Socket (setSocketOption, SocketOption(..))
 import System.Environment (getArgs)
 import System.IO (hSetBuffering, hGetLine, hPutStrLn, BufferMode(..), Handle, hClose, hFlush)
 import Control.Concurrent (forkIO, myThreadId, threadDelay)
@@ -14,7 +15,9 @@ main = withSocketsDo $ do -- withSocketsDo required for Windows usage
   args <- getArgs
   let port = fromIntegral (read $ head args :: Int)
   let tickrate = 68
+  let timeout = 500
   socket <- listenOn $ PortNumber port
+  setSocketOption socket SendTimeOut timeout
   putStrLn $ "Listening on port " ++ (head args)
   putStrLn $ "Spawning supervisor"
   broadcastChan <- newChan
@@ -62,7 +65,7 @@ supervisor broadcastChan messageBox userL = do
               let newUserID = createUniqueID userL [1..(length userL + 2)]
               let (tempX, tempY) = (80.0 * fromIntegral(newUserID), 400.0) -- TODO: temp solution used for dev purposes
               let tempRadius = 20.0
-              let createdUser = User newUserID username 0 tempX tempY 0.0 0.0 acc tempRadius False
+              let createdUser = User newUserID username 0 tempX tempY 0.0 0.0 acc tempRadius False 
               testPrint user
               testPrint createdUser
               let newUserL = createdUser:userL
