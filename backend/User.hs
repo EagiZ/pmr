@@ -57,10 +57,10 @@ update :: User -> User
 update (User userID username score xPos yPos xVel yVel acc radius isAlive) =
   User userID username score (xPos+xVel) (yPos+yVel) (xVel*acc) (yVel*acc) acc radius isAlive
 
-decodeJSON :: FromJSON a => BS.ByteString -> Either String a
+decodeJSON :: FromJSON a => String -> Either String a
 decodeJSON str =
-  eitherDecode str
+  eitherDecode $ BS.fromStrict $ C.pack str
 
-encodeJSON :: ToJSON a => a -> BS.ByteString
+encodeJSON :: ToJSON a => a -> String
 encodeJSON user =
-  encode $ user
+  C.unpack $ BS.toStrict $ encode user
