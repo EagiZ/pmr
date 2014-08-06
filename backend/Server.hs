@@ -44,7 +44,7 @@ tickHandler messageBox sleepTime = do
 createUniqueID :: [User] -> [Int] -> Int
 createUniqueID [] candidates =
   head candidates
-createUniqueID (user@(User userID username score xPos yPos xVel yVel acc radius isAlive):tl) candidates =
+createUniqueID (user@(User userID _ _ _ _ _ _ _ _ _):tl) candidates =
   createUniqueID tl $ filter (/=userID) candidates 
 
 supervisor :: Chan Msg -> Chan Msg -> [User] -> IO()
@@ -52,13 +52,9 @@ supervisor broadcastChan messageBox userL = do
   eitherMsg <- readChan messageBox
   case eitherMsg of
     Left (line, chan) -> do
-      let cmd = words line
-      case (head cmd) of
+      case (head $ words line) of
         ("connect") -> do
-          let playerAsJSONStr = unwords $ tail cmd
-          let bsFromClient = BS.fromStrict $ C.pack playerAsJSONStr
-          let decoded = decodeJSON bsFromClient :: Either String User
-          case decoded of
+          case decodeJSON (unwords (tail $ words line)) of
             Left err -> do
               putStrLn err
             Right user@(User userID username score xPos yPos xVel yVel acc radius isAlive) -> do
@@ -68,43 +64,31 @@ supervisor broadcastChan messageBox userL = do
               let createdUser = User newUserID username 0 tempX tempY 0.0 0.0 acc tempRadius False 
               testPrint user
               testPrint createdUser
-              let newUserL = createdUser:userL
-              let userAsJSON = C.unpack $ BS.toStrict $ encodeJSON createdUser
-              writeChan chan userAsJSON
-              supervisor broadcastChan messageBox (newUserL)
+              writeChan chan $ encodeJSON createdUser
+              supervisor broadcastChan messageBox (createdUser:userL)
         ("refresh") -> do
-          let usersAsJSON = C.unpack $ BS.toStrict $ encodeJSON userL
-          writeChan chan usersAsJSON
+          writeChan chan $ encodeJSON userL
           supervisor broadcastChan messageBox (userL)
         _ -> do
           putStrLn "SUPERVISOR ERROR: received unkown message in messageBox"
     Right line -> do
-      let cmd = words line
-      case (head cmd) of
+      case (head $ words line) of
         ("move") -> do
-          let playerAsJSONStr = unwords $ tail cmd
-          let bsFromClient = BS.fromStrict $ C.pack playerAsJSONStr
-          let decoded = decodeJSON bsFromClient :: Either String User
-          case decoded of
+          case decodeJSON (unwords (tail $ words line)) of
             Left err -> do
               putStrLn err
             Right user -> do
-              let newUserL = updateUser userL user
-              supervisor broadcastChan messageBox newUserL
+              supervisor broadcastChan messageBox (updateUser userL user)
         ("disconnect") -> do
-          let playerAsJSONStr = unwords $ tail cmd
-          let bsFromClient = BS.fromStrict $ C.pack playerAsJSONStr
-          let decoded = decodeJSON bsFromClient :: Either String User
-          case decoded of
+          case decodeJSON (unwords (tail $ words line)) of
             Left err -> do
               putStrLn err
             Right user -> do
               supervisor broadcastChan messageBox (removeUser userL user)
         ("tick") -> do
           let newUserL = updateUsers userL
-          let usersAsJSON = C.unpack $ BS.toStrict $ encodeJSON newUserL
-          writeChan broadcastChan $ Right ("refresh " ++ usersAsJSON)
-          supervisor broadcastChan messageBox $ updateUsers userL
+          writeChan broadcastChan $ Right ("refresh " ++ (encodeJSON newUserL))
+          supervisor broadcastChan messageBox (newUserL)
         _ -> do
           putStrLn "SUPERVISOR ERROR: received unkown message in messageBox"
         
@@ -112,8 +96,7 @@ supervisor broadcastChan messageBox userL = do
 commandProcessor :: Handle -> Chan Msg -> Chan Msg -> Chan String -> IO ()
 commandProcessor clientHandle broadcastChan messageBox socketChan = do
   fromClient <- hGetLine clientHandle
-  let cmd = words fromClient
-  case (head cmd) of
+  case (head $ words fromClient) of
     ("connect") -> do
       receiveChannel <- newChan
       writeChan messageBox $ Left (fromClient, receiveChannel)
@@ -137,16 +120,13 @@ commandProcessor clientHandle broadcastChan messageBox socketChan = do
     ("move") -> do
       writeChan messageBox $ Right fromClient
     _ -> do
-      let bsFromClient = BS.fromStrict $ C.pack fromClient
-      let decoded = decodeJSON bsFromClient :: Either String User
-      case decoded of
+      case decodeJSON fromClient of
         Left err -> do
           putStrLn err
           writeChan socketChan err
         Right user -> do
           testPrint user
-          let newUser = C.unpack $ BS.toStrict $ encodeJSON user
-          writeChan socketChan newUser
+          writeChan socketChan (encodeJSON user)
   commandProcessor clientHandle broadcastChan messageBox socketChan
 
 sendLoop :: Handle -> Chan String -> IO ()
@@ -162,10 +142,10 @@ receiveLoop clientHandle broadcastChan messageBox socketChan = do
   eitherChan <- readChan broadcastChan
   case eitherChan of
     Right line -> do
-      let cmd = words line
-      case (head cmd) of
+      --let cmd = words line
+      case (head $ words line) of
         ("refresh") -> do
-          writeChan socketChan $ unwords $ tail cmd
+          writeChan socketChan $ unwords $ tail $ words line
         _ -> do
           putStrLn "RECEIVELOOP: received unkown command"
     _ -> do
@@ -182,8 +162,13 @@ connectCommand clientHandle cmd = do
 
 updateUsers :: [User] -> [User]
 updateUsers [] = []
-updateUsers (user:users) =
-  (update user) : updateUsers users
+updateUsers (users) =
+  let updateUsers' :: [User] -> [User] -> [User]
+      updateUsers' [] acc = acc
+      updateUsers' (user : users) acc =
+        updateUsers' users $! ((update user) : acc)
+  in
+  updateUsers' users []
 
 updateUser :: [User] -> User -> [User]
 updateUser [] _ = []
