@@ -1,11 +1,13 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 import Network (listenOn, withSocketsDo, accept, PortID(..), Socket)
 import Network.Socket (setSocketOption, SocketOption(..))
 import System.Environment (getArgs)
-import System.IO (hSetBuffering, hGetLine, hPutStrLn, BufferMode(..), Handle, hClose, hFlush)
+import System.IO (hSetBuffering, hGetLine, hPutStrLn, BufferMode(..), Handle, hClose, hFlush, hIsClosed)
 import Control.Concurrent (forkIO, myThreadId, threadDelay)
 import Control.Concurrent.Chan
 import Control.Exception.Base
+import Control.Exception
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString.Char8 as C
 import User
@@ -138,22 +140,33 @@ commandProcessor clientHandle broadcastChan messageBox socketChan = do
           writeChan socketChan (encodeJSON user)
   commandProcessor clientHandle broadcastChan messageBox socketChan
 
+sendLoopDeadLetters :: Chan String -> IO ()
+sendLoopDeadLetters chan = do
+  _ <- readChan chan
+  sendLoopDeadLetters chan
+
 sendLoop :: Handle -> Chan String -> IO ()
 sendLoop clientHandle socketChan = do
   line <- readChan socketChan
-  hPutStrLn clientHandle line
-  hFlush clientHandle
+  result <- try (hPutStrLn clientHandle line) :: IO (Either SomeException ()) -- TODO: this is a bad workaround but will probably suffice for the time being
+  case result of
+    Left _ ->
+      sendLoopDeadLetters socketChan
+    Right _ -> do
+      hFlush clientHandle
   sendLoop clientHandle socketChan
 
 -- a receive loop that should be created along with a comma+ndProcessor with the same handle
 receiveLoop :: Handle -> Chan Msg -> Chan Msg -> Chan String -> IO ()
 receiveLoop clientHandle broadcastChan messageBox socketChan = do
   eitherChan <- readChan broadcastChan
+  --putStrLn "reading broadcast chan"
   case eitherChan of
     Right line -> do
       --let cmd = words line
       case (head $ words line) of
         ("refresh") -> do
+          --putStrLn "receiveLoop refresh writing to socketChan"
           writeChan socketChan $ unwords $ tail $ words line
         _ -> do
           putStrLn "RECEIVELOOP: received unkown command"
