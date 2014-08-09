@@ -1,9 +1,11 @@
+{-# LANGUAGE BangPatterns #-}
 import Network (listenOn, withSocketsDo, accept, PortID(..), Socket)
 import Network.Socket (setSocketOption, SocketOption(..))
 import System.Environment (getArgs)
 import System.IO (hSetBuffering, hGetLine, hPutStrLn, BufferMode(..), Handle, hClose, hFlush)
 import Control.Concurrent (forkIO, myThreadId, threadDelay)
 import Control.Concurrent.Chan
+import Control.Exception.Base
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString.Char8 as C
 import User
@@ -22,9 +24,16 @@ main = withSocketsDo $ do -- withSocketsDo required for Windows usage
   putStrLn $ "Spawning supervisor"
   broadcastChan <- newChan
   messageBox <- newChan
+  _ <- forkIO $ spaceFixer broadcastChan
   _ <- forkIO $ supervisor broadcastChan messageBox []
   _ <- forkIO $ tickHandler messageBox (1000000 `div` tickrate)
   sockHandler socket broadcastChan messageBox
+
+spaceFixer :: Chan Msg -> IO ()
+spaceFixer chan = do
+  eitherMsg <- readChan chan
+  case eitherMsg of
+    _ -> spaceFixer chan
 
 sockHandler :: Socket -> Chan Msg -> Chan Msg -> IO ()
 sockHandler sock broadcastChan messageBox = do
@@ -52,22 +61,22 @@ supervisor broadcastChan messageBox userL = do
   eitherMsg <- readChan messageBox
   case eitherMsg of
     Left (line, chan) -> do
-      case (head $ words line) of
+      case (head $! words line) of
         ("connect") -> do
-          case decodeJSON (unwords (tail $ words line)) of
+          case decodeJSON $! unwords (tail $! words line) of
             Left err -> do
               putStrLn err
             Right user@(User userID username score xPos yPos xVel yVel acc radius isAlive) -> do
-              let newUserID = createUniqueID userL [1..(length userL + 2)]
-              let (tempX, tempY) = (80.0 * fromIntegral(newUserID), 400.0) -- TODO: temp solution used for dev purposes
-              let tempRadius = 20.0
-              let createdUser = User newUserID username 0 tempX tempY 0.0 0.0 acc tempRadius False 
+              let !newUserID = createUniqueID userL [1..(length userL + 2)]
+              let !(tempX, tempY) = (80.0 * fromIntegral(newUserID), 400.0) -- TODO: temp solution used for dev purposes
+              let !tempRadius = 20.0
+              let !createdUser = User newUserID username 0 tempX tempY 0.0 0.0 acc tempRadius False 
               testPrint user
               testPrint createdUser
-              writeChan chan $ encodeJSON createdUser
-              supervisor broadcastChan messageBox (createdUser:userL)
+              writeChan chan $! encodeJSON createdUser
+              supervisor broadcastChan messageBox $! createdUser:userL
         ("refresh") -> do
-          writeChan chan $ encodeJSON userL
+          writeChan chan $! encodeJSON userL
           supervisor broadcastChan messageBox (userL)
         _ -> do
           putStrLn "SUPERVISOR ERROR: received unkown message in messageBox"
@@ -86,8 +95,8 @@ supervisor broadcastChan messageBox userL = do
             Right user -> do
               supervisor broadcastChan messageBox (removeUser userL user)
         ("tick") -> do
-          let newUserL = updateUsers userL
-          writeChan broadcastChan $ Right ("refresh " ++ (encodeJSON newUserL))
+          let !newUserL = updateUsers userL
+          writeChan broadcastChan $ Right $! "refresh " ++ (encodeJSON newUserL)
           supervisor broadcastChan messageBox (newUserL)
         _ -> do
           putStrLn "SUPERVISOR ERROR: received unkown message in messageBox"
