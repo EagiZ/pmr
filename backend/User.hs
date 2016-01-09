@@ -55,7 +55,14 @@ instance ToJSON User where
 
 update :: User -> User
 update (User userID username score xPos yPos xVel yVel acc radius isAlive) =
-  User userID username score (xPos+xVel) (yPos+yVel) (xVel*acc) (yVel*acc) acc radius isAlive
+  -- Temporary bounds checking
+  let
+    xPos' = xPos+xVel
+    yPos' = yPos+yVel
+    xVel' = if xPos' < 0 || xPos' > 1024 then -(xVel*acc) else (xVel*acc)
+    yVel' = if yPos' < 0 || yPos' > 768 then -(yVel*acc) else (yVel*acc)
+  in
+   User userID username score (abs xPos') (abs yPos') xVel' yVel' acc radius isAlive
 
 decodeJSON :: FromJSON a => String -> Either String a
 decodeJSON str =
