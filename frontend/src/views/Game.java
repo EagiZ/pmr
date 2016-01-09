@@ -101,8 +101,7 @@ public class Game extends BasicGame {
 			// TODO: here's where we should send data to the server.
 			
 			String sampleJSON = Player.toJSON(player).toString();
-			
-			
+			player.setVelocity(new Vector2f(0, 0));
 			
 			System.out.println("Sending move");
 			long time_pre = System.currentTimeMillis();
@@ -110,10 +109,14 @@ public class Game extends BasicGame {
 			
 			String testStr = connection.receive();
 			long time_total = System.currentTimeMillis() - time_pre;
-			System.out.println("Received answer to move in " + time_total + " time");
+			System.out.println("Received answer to move in " + time_total + " milisecond(s)");
 			
-			player.update();
-			players = playersToSet(JsonArray.readFrom(testStr));
+			System.out.print(players.isEmpty());
+			
+			// Should players be updated here?
+			//players = playersToSet(JsonArray.readFrom(testStr));
+			//player.update();
+			//System.out.println("Players updated");
 			
 			dragline.setAlive(false);
 		} 
@@ -134,8 +137,6 @@ public class Game extends BasicGame {
 		}
 		g.setColor(new Color(0xff, 0, 0x80));
 		g.fill(player.getHitbox());
-		
-		
 	}
 	
 	/**
