@@ -120,7 +120,7 @@ public class Connection {
 	public synchronized String receiveNotBlocking() {
 		String str = null;
 		try {
-			if(receive.ready()) {
+			while(receive.ready()) {
 				str = receive();
 			}
 		} catch (IOException e) {
