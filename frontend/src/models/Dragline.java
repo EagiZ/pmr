@@ -63,10 +63,10 @@ public class Dragline {
 			// TODO: Fix this, color is not changing correctly.
 			float lengthColor = 255 - line.length();
 			lengthColor = (lengthColor < 0 ? 0 : lengthColor);
-			System.out.println(line.length() + " length -/- lc " + lengthColor);
+			//System.out.println(line.length() + " length -/- lc " + lengthColor);
 			setColor(new Color(0xff, (int) lengthColor, 0x0));
 			
-			System.out.println(getColor().toString());
+			//System.out.println(getColor().toString());
 		}
 	}
 }
